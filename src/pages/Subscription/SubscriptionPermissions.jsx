@@ -10,11 +10,15 @@ import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-alpine.css";
 
 import "./SubscriptionPermissions.css";
+import ConfirmDialog from "../../components/Common/ConfirmDialog";
+import { useDeleteConfirm } from "../../hooks/useDeleteConfirm";
+import { useToast } from "../../components/Toast/useToast";
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
 function SubscriptionPermissions() {
   const navigate = useNavigate();
+  const toast = useToast();
 
   const [search, setSearch] = useState("");
 
@@ -69,24 +73,20 @@ function SubscriptionPermissions() {
      DELETE
   ========================= */
 
-  const handleDelete = (permission) => {
-    const confirmDelete = window.confirm(
-      "Are you sure you want to delete this permission?",
-    );
-
-    if (!confirmDelete) return;
-
-    setPermissions((prev) =>
-      prev.filter((item) => item.permissionId !== permission.permissionId),
-    );
-  };
+  const del = useDeleteConfirm({
+    entity: "permission",
+    deleteFn: (permission) =>
+      setPermissions((prev) =>
+        prev.filter((item) => item.permissionId !== permission.permissionId),
+      ),
+  });
 
   /* =========================
      ADD PERMISSION
   ========================= */
 
   const handleAddPermission = () => {
-    alert("Add Permission form will be added here.");
+    toast.info("Add Permission form will be added here.");
   };
 
   /* =========================
@@ -127,7 +127,7 @@ function SubscriptionPermissions() {
           type="button"
           className="btn btn-outline-danger action-icon-btn"
           title="Delete"
-          onClick={() => handleDelete(params.data)}
+          onClick={() => del.request(params.data)}
         >
           <FaTrash />
         </button>
@@ -311,6 +311,21 @@ function SubscriptionPermissions() {
           animateRows={true}
         />
       </div>
+
+      <ConfirmDialog
+        open={Boolean(del.pending)}
+        title="Delete this permission?"
+        body={
+          del.pending
+            ? `The "${del.pending.role}" role will lose "${del.pending.accessType}" access on the ${del.pending.subscriptionPlan} plan. This can't be undone.`
+            : "This permission will be removed. This can't be undone."
+        }
+        confirmLabel="Delete permission"
+        loading={del.deleting}
+        error={del.error}
+        onConfirm={del.confirm}
+        onCancel={del.close}
+      />
     </div>
   );
 }

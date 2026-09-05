@@ -9,9 +9,13 @@ import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-alpine.css";
 
 import "./SubscriptionPlans.css";
+import ConfirmDialog from "../../components/Common/ConfirmDialog";
+import { useDeleteConfirm } from "../../hooks/useDeleteConfirm";
+import { useToast } from "../../components/Toast/useToast";
 
 function SubscriptionPlans() {
   const navigate = useNavigate();
+  const toast = useToast();
 
   /* ================================
      SUBSCRIPTIONS
@@ -52,7 +56,7 @@ function SubscriptionPlans() {
   ================================= */
 
   const handleAddSubscription = () => {
-    alert("Add Subscription form will be added here.");
+    toast.info("Add Subscription form will be added here.");
   };
 
   /* ================================
@@ -60,26 +64,20 @@ function SubscriptionPlans() {
   ================================= */
 
   const handleEdit = (subscription) => {
-    alert(`Edit Subscription: ${subscription.name}`);
+    toast.info(`Edit Subscription: ${subscription.name}`);
   };
 
   /* ================================
      DELETE
   ================================= */
 
-  const handleDelete = (id) => {
-    const confirmDelete = window.confirm(
-      "Are you sure you want to delete this subscription?",
-    );
-
-    if (!confirmDelete) {
-      return;
-    }
-
-    setSubscriptions((previous) =>
-      previous.filter((subscription) => subscription.id !== id),
-    );
-  };
+  const del = useDeleteConfirm({
+    entity: "plan",
+    deleteFn: (plan) =>
+      setSubscriptions((previous) =>
+        previous.filter((subscription) => subscription.id !== plan.id),
+      ),
+  });
 
   /* ================================
      ACTION RENDERER
@@ -103,7 +101,7 @@ function SubscriptionPlans() {
           type="button"
           className="action-icon-only delete-icon"
           title="Delete"
-          onClick={() => handleDelete(params.data.id)}
+          onClick={() => del.request(params.data)}
         >
           <FaTrash />
         </button>
@@ -266,6 +264,17 @@ function SubscriptionPlans() {
           />
         </div>
       </div>
+
+      <ConfirmDialog
+        open={Boolean(del.pending)}
+        title={`Delete "${del.pending?.name || "this plan"}"?`}
+        body="Colleges on this plan will need to be moved to another one. This can't be undone."
+        confirmLabel="Delete plan"
+        loading={del.deleting}
+        error={del.error}
+        onConfirm={del.confirm}
+        onCancel={del.close}
+      />
     </div>
   );
 }
