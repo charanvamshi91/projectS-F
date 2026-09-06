@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import ExamService from "../../services/ExamService";
+import ConfirmDialog from "../../components/Common/ConfirmDialog";
+import { useDeleteConfirm } from "../../hooks/useDeleteConfirm";
 import "./ExamCatalog.css";
 
 // The exams list only tells us when a paper's window opens and closes, so the
@@ -46,9 +48,17 @@ function ExamCatalog() {
   const navigate = useNavigate();
   const [exams, setExams] = useState([]);
   const [status, setStatus] = useState("loading");
-  const [deletingId, setDeletingId] = useState(null);
 
   const canManage = MANAGER_ROLES.includes(currentRole());
+
+  const del = useDeleteConfirm({
+    entity: "paper",
+    deleteFn: (exam) => ExamService.delete(exam.examId),
+    onDeleted: (exam) =>
+      setExams((current) =>
+        current.filter((item) => item.examId !== exam.examId),
+      ),
+  });
 
   const loadExams = useCallback(() => {
     let active = true;
@@ -75,29 +85,6 @@ function ExamCatalog() {
 
   const openExam = (examId) => navigate(`/exams/${examId}`);
   const editExam = (examId) => navigate(`/exam-paper/${examId}`);
-
-  const deleteExam = async (exam) => {
-    const confirmed = window.confirm(
-      `Delete "${exam.examName}"? This can't be undone.`,
-    );
-    if (!confirmed) return;
-
-    setDeletingId(exam.examId);
-    try {
-      await ExamService.delete(exam.examId);
-      setExams((current) =>
-        current.filter((item) => item.examId !== exam.examId),
-      );
-    } catch (error) {
-      console.error("Failed to delete exam:", error);
-      window.alert(
-        error?.response?.data?.message ||
-          "We couldn't delete this paper. Try again.",
-      );
-    } finally {
-      setDeletingId(null);
-    }
-  };
 
   return (
     <div className="exam-catalog">
@@ -193,10 +180,12 @@ function ExamCatalog() {
                     <button
                       type="button"
                       className="exam-card__admin-btn exam-card__admin-btn--danger"
-                      onClick={() => deleteExam(exam)}
-                      disabled={deletingId === exam.examId}
+                      onClick={() => del.request(exam)}
+                      disabled={del.pending?.examId === exam.examId}
                     >
-                      {deletingId === exam.examId ? "Deleting…" : "Delete"}
+                      {del.pending?.examId === exam.examId && del.deleting
+                        ? "Deleting…"
+                        : "Delete"}
                     </button>
                   </div>
                 )}
@@ -205,6 +194,17 @@ function ExamCatalog() {
           })}
         </ul>
       )}
+
+      <ConfirmDialog
+        open={Boolean(del.pending)}
+        title={`Delete "${del.pending?.examName || "this paper"}"?`}
+        body="Students will no longer be able to sit this paper. This can't be undone."
+        confirmLabel="Delete paper"
+        loading={del.deleting}
+        error={del.error}
+        onConfirm={del.confirm}
+        onCancel={del.close}
+      />
     </div>
   );
 }
