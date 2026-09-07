@@ -322,7 +322,14 @@ function App() {
 
         {/* Learning */}
         <Route path="/practice" element={<Practice />} />
-        <Route path="/Exam" element={<ExamList />} />
+        <Route
+          path="/Exam"
+          element={
+            <ProtectedRoute allowedRoles={CONTENT_MANAGER_ROLES}>
+              <ExamList />
+            </ProtectedRoute>
+          }
+        />
         <Route path="/sessions" element={<Sessions />} />
         <Route path="/results" element={<Results />} />
         <Route path="/certificates" element={<Certificates />} />
@@ -333,8 +340,22 @@ function App() {
         <Route path="/course-subscribe" element={<CourseSubscribe />} />
         <Route path="/exam-hub" element={<ExamHub />} />
         <Route path="/exams" element={<ExamCatalog />} />
-        <Route path="/exam-paper" element={<ExamPaper />} />
-        <Route path="/exam-paper/:examId" element={<ExamPaper />} />
+        <Route
+          path="/exam-paper"
+          element={
+            <ProtectedRoute allowedRoles={CONTENT_MANAGER_ROLES}>
+              <ExamPaper />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/exam-paper/:examId"
+          element={
+            <ProtectedRoute allowedRoles={CONTENT_MANAGER_ROLES}>
+              <ExamPaper />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/mcq-questions/create"
           element={
